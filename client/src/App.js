@@ -1,25 +1,48 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import io from "socket.io-client";
+import { ToastContainer, toast } from "react-toastify";
+import Tickers from "./Components/tickers/Tikers";
+import { tickersErrorSelector } from "./redux/tickers/tickersSelectors";
+import "react-toastify/dist/ReactToastify.css";
+import {
+  getTickersError,
+  getTickersSucces,
+} from "./redux/tickers/tickersActions";
+import ControlPanel from "./Components/controlPanel/ControlPanel";
 
-function App() {
+const socket = io("http://localhost:4000/");
+
+const App = () => {
+  const error = useSelector(tickersErrorSelector);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    socket.emit("start");
+    socket.on("ticker", (tickers) => {
+      dispatch(getTickersSucces(tickers));
+    });
+    socket.on("connect_error", () =>
+      dispatch(getTickersError("No internet connection"))
+    );
+    toast.error(error);
+  }, [dispatch, error]);
+
+  const serverStart = (interval) => {
+    socket.emit("start", interval * 1000);
+  };
+
+  const serverStop = () => {
+    socket.emit("stop");
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      <ControlPanel serverStart={serverStart} serverStop={serverStop} />
+      <Tickers />
+      <ToastContainer theme="colored" />
+    </>
   );
-}
+};
 
 export default App;
